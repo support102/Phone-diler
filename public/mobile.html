@@ -256,6 +256,15 @@
       sessionId = localStorage.getItem('dial-relay-session');
     }
 
+    // --- Handle immediate dial request from notification ---
+    const dialParam = params.get('dial');
+    if (dialParam) {
+      // Small delay to ensure the page is loaded enough
+      setTimeout(() => {
+        window.location.href = `tel:${dialParam}`;
+      }, 500);
+    }
+
     // DOM
     const statusRing = document.getElementById('statusRing');
     const statusEmoji = document.getElementById('statusEmoji');

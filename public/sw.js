@@ -38,16 +38,17 @@ self.addEventListener('notificationclick', (event) => {
   // action === 'call' or user tapped the notification body
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // Try to focus an existing mobile page
+      const dialUrl = `/mobile.html?dial=${phoneNumber}`;
+      
+      // Try to find any existing mobile.html window
       for (const client of clients) {
         if (client.url.includes('mobile.html')) {
-          client.focus();
-          client.postMessage({ type: 'trigger-call', phoneNumber });
-          return;
+          // Navigate the existing window to the dial URL
+          return client.navigate(dialUrl).then(c => c.focus());
         }
       }
-      // Fallback: open tel: directly
-      return self.clients.openWindow(`tel:${phoneNumber}`);
+      // Fallback: open a new window with the dial URL
+      return self.clients.openWindow(dialUrl);
     })
   );
 });
