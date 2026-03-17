@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#050a18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Dial Relay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050a18;
+      --surface: #0c1225;
+      --surface2: #111b33;
+      --border: #1a2744;
+      --text: #e8edf5;
+      --text2: #8896b0;
+      --text3: #556479;
+      --accent: #4f7df9;
+      --green: #2dd4a0;
+      --green-glow: rgba(45, 212, 160, 0.12);
+      --red: #f0576c;
+      --red-glow: rgba(240, 87, 108, 0.12);
+      --orange: #f59e0b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Permission overlay */
+    .perm-overlay {
+      position: fixed; inset: 0; background: var(--bg); z-index: 200;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 32px; text-align: center;
+    }
+    .perm-overlay.hidden { display: none; }
+    .perm-icon-wrap {
+      width: 88px; height: 88px; border-radius: 24px;
+      background: linear-gradient(135deg, var(--accent), #7c4dff);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; margin-bottom: 28px;
+      box-shadow: 0 12px 40px rgba(79, 125, 249, 0.3);
+    }
+    .perm-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 10px; letter-spacing: -0.02em; }
+    .perm-desc { color: var(--text2); font-size: 0.92rem; line-height: 1.6; margin-bottom: 36px; max-width: 320px; }
+    .perm-btn {
+      width: 100%; max-width: 300px; padding: 18px;
+      border-radius: 14px; border: none;
+      background: var(--accent); color: #fff;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; margin-bottom: 12px;
+      box-shadow: 0 4px 20px rgba(79, 125, 249, 0.3);
+    }
+    .perm-btn:active { transform: scale(0.98); }
+    .perm-skip {
+      width: 100%; max-width: 300px; padding: 14px;
+      border-radius: 12px; border: 1px solid var(--border);
+      background: transparent; color: var(--text3);
+      font-size: 0.9rem; cursor: pointer; font-family: inherit;
+    }
+    .perm-note { color: var(--text3); font-size: 0.75rem; margin-top: 24px; max-width: 280px; }
+
+    /* Main content */
+    .main { width: 100%; max-width: 400px; text-align: center; }
+
+    /* Status card */
+    .status-card {
+      background: var(--surface); border-radius: 20px;
+      padding: 36px 24px; border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .status-ring {
+      width: 80px; height: 80px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px; font-size: 32px;
+      transition: all 0.4s;
+    }
+    .status-ring.connected { background: var(--green-glow); border: 2px solid rgba(45,212,160,0.35); }
+    .status-ring.disconnected { background: var(--red-glow); border: 2px solid rgba(240,87,108,0.35); }
+    .status-ring.waiting { background: rgba(245,158,11,0.1); border: 2px solid rgba(245,158,11,0.3); }
+    .status-h { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.01em; }
+    .status-p { color: var(--text2); font-size: 0.85rem; line-height: 1.5; }
+
+    /* Badges row */
+    .badges { display: flex; justify-content: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    .badge {
+      padding: 5px 12px; border-radius: 8px; font-size: 0.7rem;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .badge.push-on { background: var(--green-glow); color: var(--green); }
+    .badge.push-off { background: var(--red-glow); color: var(--red); }
+    .badge.session { background: rgba(79,125,249,0.1); color: var(--accent); }
+
+    /* Reset button */
+    .btn-reset {
+      margin-top: 20px; padding: 12px 24px; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text2); font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.2s;
+      width: 100%;
+    }
+    .btn-reset:active { background: var(--border); }
+
+    /* Dial popup */
+    .dial-overlay {
+      position: fixed; inset: 0; background: rgba(5,10,24,0.85);
+      backdrop-filter: blur(12px); display: none;
+      align-items: center; justify-content: center;
+      padding: 24px; z-index: 100;
+    }
+    .dial-overlay.active { display: flex; }
+    @keyframes popIn {
+      from { transform: scale(0.9) translateY(20px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .dial-card {
+      background: var(--surface); border-radius: 28px;
+      padding: 44px 28px 32px; width: 100%; max-width: 360px;
+      text-align: center; border: 1px solid var(--border);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+      animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .dial-tag {
+      display: inline-block; padding: 5px 14px; border-radius: 8px;
+      background: rgba(79,125,249,0.12); color: var(--accent);
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; margin-bottom: 20px;
+    }
+    .dial-emoji { font-size: 44px; margin-bottom: 16px; }
+    .dial-number {
+      font-size: 1.8rem; font-weight: 800; color: var(--text);
+      margin-bottom: 36px; word-break: break-all; line-height: 1.3;
+      letter-spacing: -0.02em;
+    }
+    .btn-call {
+      display: block; width: 100%; padding: 18px;
+      border-radius: 16px; border: none;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff; font-size: 1.15rem; font-weight: 800;
+      cursor: pointer; text-decoration: none; text-align: center;
+      margin-bottom: 10px; font-family: inherit;
+      box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+    }
+    .btn-call:active { transform: scale(0.98); }
+    .btn-dismiss {
+      display: block; width: 100%; padding: 14px;
+      border-radius: 12px; border: 1px solid var(--border);
+      background: transparent; color: var(--text3);
+      font-size: 0.9rem; cursor: pointer; font-family: inherit;
+    }
+
+    /* History */
+    .history-card {
+      background: var(--surface); border-radius: 16px;
+      padding: 20px; border: 1px solid var(--border);
+    }
+    .history-title {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text3); margin-bottom: 14px;
+      text-align: left;
+    }
+    .history-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 16px; background: var(--surface2);
+      border-radius: 12px; margin-bottom: 6px;
+      border: 1px solid transparent; transition: all 0.2s;
+    }
+    .history-item:active { border-color: var(--border); }
+    .history-number { font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .history-call {
+      width: 42px; height: 42px; border-radius: 12px; border: none;
+      background: var(--green-glow); color: var(--green);
+      font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      text-decoration: none;
+    }
+    .history-empty { text-align: center; color: var(--text3); font-size: 0.82rem; padding: 16px; }
+  </style>
+</head>
+<body>
+  <!-- Permission overlay -->
+  <div class="perm-overlay" id="permOverlay">
+    <div class="perm-icon-wrap">&#128276;</div>
+    <div class="perm-title">Stay Connected</div>
+    <div class="perm-desc">
+      Allow notifications so you receive dial requests even when this tab is closed, you switch apps, or your screen is off.
+    </div>
+    <button class="perm-btn" id="allowBtn">Allow Notifications</button>
+    <button class="perm-skip" id="skipBtn">Maybe Later</button>
+    <div class="perm-note">You can change this anytime in your browser settings</div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="status-card">
+      <div class="status-ring waiting" id="statusRing">
+        <span id="statusEmoji">&#128276;</span>
+      </div>
+      <h1 class="status-h" id="statusTitle">Connecting...</h1>
+      <p class="status-p" id="statusSub">Setting up your session...</p>
+
+      <div class="badges" id="badges">
+        <span class="badge push-off" id="pushBadge" style="display:none;">Push off</span>
+        <span class="badge session" id="sessionBadge" style="display:none;">Session saved</span>
+      </div>
+
+      <div id="diagInfo" style="margin-top:20px; font-size:0.7rem; color:var(--text3); display:none; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
+        <div style="font-weight:700; border-bottom:1px solid var(--border); margin-bottom:5px; padding-bottom:3px;">DIAGNOSTICS</div>
+        <div id="diagSW">SW: Checking...</div>
+        <div id="diagPush">Push: Checking...</div>
+        <div id="diagPerm">Perm: Checking...</div>
+        <div id="diagErr" style="color:var(--red); margin-top:5px; word-break:break-all;"></div>
+      </div>
+
+      <button class="btn-reset" id="resetBtn">Reset Connection</button>
+      <button id="diagBtn" style="margin-top:10px; background:none; border:none; color:var(--text3); font-size:0.65rem; cursor:pointer; text-decoration:underline;">Show Diagnostics</button>
+    </div>
+
+    <div class="history-card" id="historyCard" style="display:none;">
+      <div class="history-title">Recent Requests</div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- Dial popup -->
+  <div class="dial-overlay" id="dialOverlay">
+    <div class="dial-card">
+      <div class="dial-tag">Incoming Request</div>
+      <div class="dial-emoji">&#128222;</div>
+      <div class="dial-number" id="dialNumber"></div>
+      <a class="btn-call" id="callBtn" href="#">Call Now</a>
+      <button class="btn-dismiss" id="dismissBtn">Dismiss</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // --- Session persistence ---
+    const params = new URLSearchParams(window.location.search);
+    let sessionId = params.get('session');
+
+    if (sessionId) {
+      localStorage.setItem('dial-relay-session', sessionId);
+    } else {
+      sessionId = localStorage.getItem('dial-relay-session');
+    }
+
+    // DOM
+    const statusRing = document.getElementById('statusRing');
+    const statusEmoji = document.getElementById('statusEmoji');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusSub = document.getElementById('statusSub');
+    const pushBadge = document.getElementById('pushBadge');
+    const sessionBadge = document.getElementById('sessionBadge');
+    const dialOverlay = document.getElementById('dialOverlay');
+    const dialNumber = document.getElementById('dialNumber');
+    const callBtn = document.getElementById('callBtn');
+    const dismissBtn = document.getElementById('dismissBtn');
+    const historyCard = document.getElementById('historyCard');
+    const historyList = document.getElementById('historyList');
+    const permOverlay = document.getElementById('permOverlay');
+    const allowBtn = document.getElementById('allowBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const diagBtn = document.getElementById('diagBtn');
+    const diagInfo = document.getElementById('diagInfo');
+    const diagSW = document.getElementById('diagSW');
+    const diagPush = document.getElementById('diagPush');
+    const diagPerm = document.getElementById('diagPerm');
+    const diagErr = document.getElementById('diagErr');
+
+    const receivedNumbers = JSON.parse(localStorage.getItem('dial-relay-history') || '[]');
+    let swRegistration = null;
+    let pushReady = false;
+
+    // Show session badge if saved
+    if (localStorage.getItem('dial-relay-session')) {
+      sessionBadge.style.display = 'inline-block';
+    }
+
+    // No session
+    if (!sessionId) {
+      permOverlay.classList.add('hidden');
+      statusRing.className = 'status-ring disconnected';
+      statusEmoji.innerHTML = '&#10060;';
+      statusTitle.textContent = 'No Session';
+      statusSub.textContent = 'Scan the QR code from the desktop app to connect.';
+    }
+
+    // --- Permission overlay ---
+    function shouldShowPerm() {
+      if (!sessionId) return false;
+      if (localStorage.getItem('dial-relay-perm-asked')) return false;
+      if ('Notification' in window && Notification.permission === 'granted') return false;
+      return true;
+    }
+    if (!shouldShowPerm()) permOverlay.classList.add('hidden');
+
+    allowBtn.addEventListener('click', async () => {
+      localStorage.setItem('dial-relay-perm-asked', '1');
+      const perm = await Notification.requestPermission();
+      permOverlay.classList.add('hidden');
+      if (perm === 'granted') await subscribeToPush();
+    });
+
+    skipBtn.addEventListener('click', () => {
+      localStorage.setItem('dial-relay-perm-asked', '1');
+      permOverlay.classList.add('hidden');
+      updateDiag();
+    });
+
+    diagBtn.addEventListener('click', () => {
+      diagInfo.style.display = diagInfo.style.display === 'none' ? 'block' : 'none';
+      updateDiag();
+    });
+
+    function updateDiag(err) {
+      diagPerm.textContent = `Perm: ${Notification.permission}`;
+      if (err) diagErr.textContent = `Error: ${err}`;
+    }
+
+    // --- Reset Connection ---
+    resetBtn.addEventListener('click', () => {
+      localStorage.removeItem('dial-relay-session');
+      localStorage.removeItem('dial-relay-perm-asked');
+      localStorage.removeItem('dial-relay-history');
+
+      // Unsubscribe push
+      if (swRegistration) {
+        swRegistration.pushManager.getSubscription().then(sub => {
+          if (sub) sub.unsubscribe();
+        });
+      }
+
+      // Notify server to remove push sub
+      if (sessionId) {
+        fetch('/api/push-unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+      }
+
+      // Unregister service worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister());
+        });
+      }
+
+      socket.disconnect();
+
+      statusRing.className = 'status-ring disconnected';
+      statusEmoji.innerHTML = '&#10060;';
+      statusTitle.textContent = 'Connection Reset';
+      statusSub.textContent = 'Scan a new QR code from the desktop to reconnect.';
+      pushBadge.style.display = 'none';
+      sessionBadge.style.display = 'none';
+      historyCard.style.display = 'none';
+
+      sessionId = null;
+      pushReady = false;
+    });
+
+    // --- Service Worker + Web Push ---
+    async function setupPush() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        swRegistration = await navigator.serviceWorker.register('/sw.js');
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data.type === 'trigger-call') {
+            window.location.href = `tel:${event.data.phoneNumber}`;
+          }
+        });
+        if (Notification.permission === 'granted') await subscribeToPush();
+        diagSW.textContent = 'SW: Registered ✅';
+      } catch (e) {
+        console.log('SW setup failed:', e);
+        diagSW.textContent = 'SW: Failed ❌';
+        updateDiag(e.message);
+      }
+    }
+
+    async function subscribeToPush() {
+      if (!swRegistration || !sessionId) return;
+      try {
+        diagPush.textContent = 'Push: Subscribing...';
+        const res = await fetch('/api/vapid-public-key');
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        const { publicKey } = await res.json();
+        const vapidKey = urlBase64ToUint8Array(publicKey);
+
+        let sub = await swRegistration.pushManager.getSubscription();
+        if (!sub) {
+          sub = await swRegistration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: vapidKey,
+          });
+        }
+
+        const pushRes = await fetch('/api/push-subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, subscription: sub }),
+        });
+        if (!pushRes.ok) throw new Error(`Subscribe API failed: ${pushRes.status}`);
+
+        pushReady = true;
+        updatePushBadge();
+        diagPush.textContent = 'Push: Subscribed ✅';
+        updateDiag('');
+      } catch (e) {
+        console.log('Push subscribe failed:', e);
+        diagPush.textContent = 'Push: Failed ❌';
+        updateDiag(e.message);
+      }
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(base64);
+      const arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return arr;
+    }
+
+    function updatePushBadge() {
+      pushBadge.style.display = 'inline-block';
+      if (pushReady) {
+        pushBadge.className = 'badge push-on';
+        pushBadge.textContent = 'Push active';
+      } else {
+        pushBadge.className = 'badge push-off';
+        pushBadge.textContent = 'Push off';
+      }
+    }
+
+    setupPush();
+
+    // --- Socket.IO ---
+    const socket = io({
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+    });
+
+    socket.on('connect', () => {
+      if (sessionId) socket.emit('register-mobile', sessionId);
+    });
+
+    socket.on('mobile-connected', () => {
+      statusRing.className = 'status-ring connected';
+      statusEmoji.innerHTML = '&#9989;';
+      statusTitle.textContent = 'Connected';
+      statusSub.textContent = 'Waiting for dial requests from desktop...';
+      updatePushBadge();
+    });
+
+    socket.on('disconnect', () => {
+      statusRing.className = 'status-ring disconnected';
+      statusEmoji.innerHTML = '&#9888;&#65039;';
+      statusTitle.textContent = 'Tab Disconnected';
+      statusSub.textContent = pushReady
+        ? 'Push notifications are still active. You will receive dial requests.'
+        : 'Connection lost. Reconnecting...';
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && sessionId) {
+        if (!socket.connected) socket.connect();
+        else socket.emit('register-mobile', sessionId);
+        acquireWakeLock();
+        if (pushReady) subscribeToPush();
+      }
+    });
+
+    setInterval(() => {
+      if (socket.connected && sessionId) socket.emit('register-mobile', sessionId);
+    }, 25000);
+
+    // --- Dial request (foreground) ---
+    socket.on('dial-request', (data) => showDialPopup(data.phoneNumber));
+
+    function showDialPopup(number) {
+      dialNumber.textContent = number;
+      callBtn.href = `tel:${number}`;
+      dialOverlay.classList.add('active');
+      if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+      playSound();
+      addHistory(number);
+    }
+
+    function playSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const play = (f, t, d) => {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.value = f; g.gain.value = 0.25;
+          o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
+        };
+        play(880, 0, 0.12); play(1100, 0.18, 0.12); play(1320, 0.36, 0.18);
+      } catch (e) {}
+    }
+
+    dismissBtn.addEventListener('click', () => dialOverlay.classList.remove('active'));
+    callBtn.addEventListener('click', () => setTimeout(() => dialOverlay.classList.remove('active'), 300));
+
+    // --- History ---
+    function addHistory(number) {
+      const idx = receivedNumbers.indexOf(number);
+      if (idx !== -1) receivedNumbers.splice(idx, 1);
+      receivedNumbers.unshift(number);
+      if (receivedNumbers.length > 20) receivedNumbers.pop();
+      localStorage.setItem('dial-relay-history', JSON.stringify(receivedNumbers));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      if (!receivedNumbers.length) { historyCard.style.display = 'none'; return; }
+      historyCard.style.display = 'block';
+      historyList.innerHTML = receivedNumbers.map(n => `
+        <div class="history-item">
+          <span class="history-number">${n}</span>
+          <a class="history-call" href="tel:${n}">&#128222;</a>
+        </div>
+      `).join('');
+    }
+    renderHistory();
+
+    // Wake lock
+    let wakeLock = null;
+    async function acquireWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => { wakeLock = null; });
+        } catch (e) {}
+      }
+    }
+    acquireWakeLock();
+  </script>
+</body>
+</html>

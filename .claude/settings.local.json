@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:/Users/anaxe/Desktop/New folder \\(4\\)\")",
+      "Bash(npm install:*)",
+      "Bash(timeout 5 node server.js)",
+      "Bash(ls \"C:/Users/anaxe/Desktop/New folder \\(4\\)/.claude/launch.json\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(ipconfig)",
+      "Bash(node -e \"const s = require\\(''selfsigned''\\); const pems = s.generate\\([{name:''commonName'',value:''test''}], {days:365,keySize:2048}\\); console.log\\(Object.keys\\(pems\\)\\);\")",
+      "Bash(node -e \"const s = require\\(''selfsigned''\\); const pems = s.generate\\([{name:''commonName'',value:''test''}], {days:365,keySize:2048}\\); console.log\\(JSON.stringify\\(pems, null, 2\\).substring\\(0, 500\\)\\);\")",
+      "Bash(node -e \"const s = require\\(''selfsigned''\\); console.log\\(typeof s.generate\\); const result = s.generate\\([{name:''commonName'',value:''test''}], {days:365, keySize:2048}, function\\(err, pems\\) { console.log\\(''callback keys:'', Object.keys\\(pems\\)\\); console.log\\(''cert length:'', pems.cert?.length\\); console.log\\(''private length:'', pems.private?.length\\); }\\);\")",
+      "Bash(node -e \"const s = require\\(''selfsigned''\\); s.generate\\([{name:''commonName'',value:''test''}], {days:365, keySize:2048}, function\\(err, pems\\) { if\\(err\\) console.log\\(''err:'', err\\); else { console.log\\(''keys:'', Object.keys\\(pems\\)\\); console.log\\(''cert:'', pems.cert?.substring\\(0,50\\)\\); } }\\);\")",
+      "Bash(where openssl:*)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(curl -k https://localhost:3000)",
+      "Bash(start //B cmd //C \"node server.js > server.log 2>&1\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3000)",
+      "Bash(findstr LISTEN)",
+      "Bash(taskkill //F //PID 6124)"
+    ]
+  }
+}

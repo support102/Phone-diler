@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dial Relay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050a18;
+      --surface: #0c1225;
+      --surface2: #111b33;
+      --border: #1a2744;
+      --border-hover: #243556;
+      --text: #e8edf5;
+      --text2: #8896b0;
+      --text3: #556479;
+      --accent: #4f7df9;
+      --accent-hover: #3d6ce8;
+      --accent-glow: rgba(79, 125, 249, 0.15);
+      --green: #2dd4a0;
+      --green-glow: rgba(45, 212, 160, 0.12);
+      --red: #f0576c;
+      --red-glow: rgba(240, 87, 108, 0.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 48px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 480px; width: 100%; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 40px; }
+    .logo {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), #7c4dff);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 16px;
+      box-shadow: 0 8px 32px rgba(79, 125, 249, 0.25);
+    }
+    h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .subtitle { color: var(--text2); font-size: 0.88rem; font-weight: 400; }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      transition: border-color 0.3s;
+    }
+    .card:hover { border-color: var(--border-hover); }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .card-title {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text3);
+    }
+
+    /* Connection card */
+    .conn-status {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px; border-radius: 12px;
+      background: var(--surface2); margin-bottom: 20px;
+    }
+    .conn-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--red); flex-shrink: 0;
+      transition: all 0.4s;
+    }
+    .conn-dot.on {
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(45, 212, 160, 0.6);
+    }
+    .conn-label { font-size: 0.85rem; color: var(--text2); font-weight: 500; }
+    .conn-badge {
+      margin-left: auto; padding: 4px 10px; border-radius: 6px;
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+    }
+    .conn-badge.off { background: var(--red-glow); color: var(--red); }
+    .conn-badge.on { background: var(--green-glow); color: var(--green); }
+    .conn-badge.push { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .conn-dot.push { background: #f59e0b; box-shadow: 0 0 12px rgba(245,158,11,0.5); }
+
+    /* QR Section */
+    .qr-section { text-align: center; transition: all 0.4s; }
+    .qr-section.hidden { display: none; }
+    .qr-wrap {
+      display: inline-block; padding: 12px; background: #fff;
+      border-radius: 16px; margin-bottom: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    .qr-wrap img { display: block; border-radius: 8px; }
+    .qr-hint { font-size: 0.78rem; color: var(--text3); }
+    .qr-url { font-size: 0.68rem; color: var(--text3); word-break: break-all; margin-top: 8px; opacity: 0.6; }
+
+    /* Connected state */
+    .connected-msg { text-align: center; padding: 12px 0; display: none; }
+    .connected-msg.show { display: block; }
+    .connected-icon { font-size: 36px; margin-bottom: 8px; }
+    .connected-text { font-size: 0.9rem; color: var(--green); font-weight: 600; }
+    .connected-sub { font-size: 0.78rem; color: var(--text3); margin-top: 4px; }
+    .btn-reconnect {
+      margin-top: 12px; padding: 8px 16px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text2); font-size: 0.78rem; cursor: pointer;
+      font-weight: 500; transition: all 0.2s;
+    }
+    .btn-reconnect:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Input */
+    .input-row { display: flex; gap: 10px; }
+    .phone-input {
+      flex: 1; padding: 14px 16px; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text); font-size: 1.05rem; font-family: inherit;
+      outline: none; transition: all 0.2s; font-weight: 500;
+    }
+    .phone-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .phone-input::placeholder { color: var(--text3); font-weight: 400; }
+    .btn-send {
+      padding: 14px 28px; border-radius: 12px; border: none;
+      background: var(--accent); color: #fff; font-size: 0.9rem;
+      font-weight: 700; cursor: pointer; transition: all 0.2s;
+      font-family: inherit; white-space: nowrap;
+    }
+    .btn-send:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(79,125,249,0.3); }
+    .btn-send:active { transform: translateY(0); }
+    .btn-send:disabled { background: var(--surface2); color: var(--text3); cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Feedback toast */
+    .toast {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-80px);
+      padding: 12px 24px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
+      z-index: 50; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: var(--green); color: #042f2e; }
+    .toast.error { background: var(--red); color: #fff; }
+
+    /* Recent list */
+    .recent-list { list-style: none; }
+    .recent-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 14px; border-radius: 10px; margin-bottom: 6px;
+      background: var(--surface2); cursor: pointer;
+      transition: all 0.2s; border: 1px solid transparent;
+    }
+    .recent-item:hover { border-color: var(--border-hover); background: #142040; }
+    .recent-number { font-size: 0.95rem; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+    .recent-time { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
+    .recent-send {
+      padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--text2); font-size: 0.75rem;
+      cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit;
+    }
+    .recent-send:hover { border-color: var(--accent); color: var(--accent); }
+    .empty { text-align: center; color: var(--text3); font-size: 0.82rem; padding: 20px; }
+
+    /* Sent counter */
+    .counter { font-size: 0.72rem; color: var(--text3); font-weight: 500; }
+
+    @media (max-width: 500px) {
+      body { padding: 24px 16px; }
+      .input-row { flex-direction: column; }
+      .btn-send { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">&#128222;</div>
+      <h1>Dial Relay</h1>
+      <p class="subtitle">Send phone numbers to your mobile instantly</p>
+    </div>
+
+    <!-- Connection -->
+    <div class="card" id="connCard">
+      <div class="card-header">
+        <span class="card-title">Connection</span>
+        <span class="conn-badge off" id="connBadge">Offline</span>
+      </div>
+      <div class="conn-status">
+        <div class="conn-dot" id="connDot"></div>
+        <span class="conn-label" id="connLabel">Waiting for phone...</span>
+      </div>
+
+      <!-- QR (shown when disconnected) -->
+      <div class="qr-section" id="qrSection">
+        <div class="qr-wrap"><img id="qrCode" alt="QR" width="200" height="200"></div>
+        <div class="qr-hint">Scan with your phone camera to connect</div>
+        <div class="qr-url" id="qrUrl"></div>
+      </div>
+
+      <!-- Connected state (shown when connected) -->
+      <div class="connected-msg" id="connMsg">
+        <div class="connected-icon" id="connIcon">&#9989;</div>
+        <div class="connected-text" id="connText">Phone Connected</div>
+        <div class="connected-sub" id="connSub">Ready to receive dial requests</div>
+        <button class="btn-reconnect" id="showQrBtn">Show QR Code</button>
+      </div>
+    </div>
+
+    <!-- Dial -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Send Number</span>
+        <span class="counter" id="sentCount"></span>
+      </div>
+      <div class="input-row">
+        <input type="tel" class="phone-input" id="phoneInput" placeholder="+1 (555) 123-4567" autocomplete="tel">
+        <button class="btn-send" id="sendBtn" disabled>Send to Phone</button>
+      </div>
+    </div>
+
+    <!-- Recent -->
+    <div class="card" id="recentCard">
+      <div class="card-header">
+        <span class="card-title">Recent</span>
+      </div>
+      <ul class="recent-list" id="recentList">
+        <li class="empty">No numbers sent yet</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    
+    // Persist sessionId on desktop too
+    let sessionId = localStorage.getItem('dial-relay-desktop-session');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem('dial-relay-desktop-session', sessionId);
+    }
+
+    const connDot = document.getElementById('connDot');
+    const connBadge = document.getElementById('connBadge');
+    const connLabel = document.getElementById('connLabel');
+    const qrSection = document.getElementById('qrSection');
+    const connMsg = document.getElementById('connMsg');
+    const qrCode = document.getElementById('qrCode');
+    const qrUrl = document.getElementById('qrUrl');
+    const phoneInput = document.getElementById('phoneInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const toast = document.getElementById('toast');
+    const recentList = document.getElementById('recentList');
+    const sentCount = document.getElementById('sentCount');
+    const showQrBtn = document.getElementById('showQrBtn');
+
+    let phoneConnected = false;
+    let qrHidden = false;
+    const recentNumbers = [];
+    let totalSent = 0;
+
+    async function loadQR() {
+      const res = await fetch(`/api/qrcode?session=${sessionId}`);
+      const data = await res.json();
+      qrCode.src = data.qr;
+      qrUrl.textContent = data.url;
+    }
+
+    socket.on('connect', () => {
+      socket.emit('register-desktop', sessionId);
+      loadQR();
+    });
+
+    socket.on('phone-status', (data) => {
+      phoneConnected = data.connected;
+      const status = data.status || (data.connected ? 'connected' : 'disconnected');
+      
+      // Enable send button if we have ANY connection (Socket or Push)
+      sendBtn.disabled = !data.connected;
+
+      const connIcon = document.getElementById('connIcon');
+      const connText = document.getElementById('connText');
+      const connSub = document.getElementById('connSub');
+
+      // Remove all dot states
+      connDot.classList.remove('on', 'push');
+
+      if (status === 'connected') {
+        // Full connection — socket is live
+        connDot.classList.add('on');
+        connBadge.textContent = 'Online';
+        connBadge.className = 'conn-badge on';
+        connLabel.textContent = 'Phone connected (live)';
+        connIcon.innerHTML = '&#9989;';
+        connText.textContent = 'Phone Connected';
+        connSub.textContent = 'Live connection — ready to receive dial requests';
+        qrSection.classList.add('hidden');
+        connMsg.classList.add('show');
+        qrHidden = true;
+      } else if (status === 'push-only') {
+        // Push active but socket disconnected (browser closed/tab switched)
+        connDot.classList.add('push');
+        connBadge.textContent = 'Push';
+        connBadge.className = 'conn-badge push';
+        connLabel.textContent = 'Push notifications active';
+        connIcon.innerHTML = '&#128276;';
+        connText.textContent = 'Push Active';
+        connSub.textContent = 'Browser closed but push notifications will still deliver. You can send numbers!';
+        qrSection.classList.add('hidden');
+        connMsg.classList.add('show');
+        qrHidden = true;
+      } else {
+        // Fully disconnected
+        connBadge.textContent = 'Offline';
+        connBadge.className = 'conn-badge off';
+        connLabel.textContent = 'Phone not connected';
+        qrSection.classList.remove('hidden');
+        connMsg.classList.remove('show');
+        qrHidden = false;
+      }
+    });
+
+    showQrBtn.addEventListener('click', () => {
+      qrSection.classList.toggle('hidden');
+    });
+
+    socket.on('dial-sent', (data) => {
+      if (data.success) {
+        showToast(`Sent ${data.phoneNumber}`, 'success');
+        addRecent(data.phoneNumber);
+        phoneInput.value = '';
+        phoneInput.focus();
+        totalSent++;
+        sentCount.textContent = `${totalSent} sent`;
+      } else {
+        showToast(data.error || 'Failed to send', 'error');
+      }
+    });
+
+    function sendDial() {
+      const number = phoneInput.value.trim();
+      if (!number) return;
+      socket.emit('dial-request', { sessionId, phoneNumber: number });
+    }
+
+    sendBtn.addEventListener('click', sendDial);
+    phoneInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDial(); });
+
+    let toastTimer;
+    function showToast(msg, type) {
+      clearTimeout(toastTimer);
+      toast.textContent = msg;
+      toast.className = `toast ${type}`;
+      requestAnimationFrame(() => toast.classList.add('show'));
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function addRecent(number) {
+      const idx = recentNumbers.findIndex(r => r.number === number);
+      if (idx !== -1) recentNumbers.splice(idx, 1);
+      recentNumbers.unshift({ number, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+      if (recentNumbers.length > 15) recentNumbers.pop();
+      renderRecent();
+    }
+
+    function renderRecent() {
+      if (!recentNumbers.length) { recentList.innerHTML = '<li class="empty">No numbers sent yet</li>'; return; }
+      recentList.innerHTML = recentNumbers.map(r => `
+        <li class="recent-item" onclick="resend('${r.number.replace(/'/g, "\\'")}')">
+          <div>
+            <div class="recent-number">${r.number}</div>
+            <div class="recent-time">${r.time}</div>
+          </div>
+          <button class="recent-send">Send Again</button>
+        </li>
+      `).join('');
+    }
+
+    function resend(number) {
+      phoneInput.value = number;
+      if (phoneConnected) sendDial();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+node_modules/
+.certs/
+.vapid-keys.json
+.sessions.json
+.DS_Store
+*.pem
+*.key
