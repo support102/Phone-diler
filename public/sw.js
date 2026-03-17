@@ -7,15 +7,19 @@ self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 // Handle incoming push notifications from server
 self.addEventListener('push', (event) => {
   let data = { title: 'Dial Request', body: 'Incoming call request', phoneNumber: '' };
-  try {
-    data = event.data.json();
-  } catch (e) {}
+
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {}
+  }
 
   const options = {
     body: data.body,
-    tag: 'dial-request-' + Date.now(),
+    icon: '/call.png',
+    tag: 'dial-request', // Fixed tag so multiple requests from same session replace each other
     requireInteraction: true,
-    vibrate: [300, 100, 300, 100, 300],
+    vibrate: [300, 100, 300],
     data: { phoneNumber: data.phoneNumber },
     actions: [
       { action: 'call', title: 'Call Now' },
@@ -36,19 +40,11 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'dismiss') return;
 
   // action === 'call' or user tapped the notification body
+  // Try to open the phone dialer directly (works on many Android devices)
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      const dialUrl = `/mobile.html?dial=${phoneNumber}`;
-      
-      // Try to find any existing mobile.html window
-      for (const client of clients) {
-        if (client.url.includes('mobile.html')) {
-          // Navigate the existing window to the dial URL
-          return client.navigate(dialUrl).then(c => c.focus());
-        }
-      }
-      // Fallback: open a new window with the dial URL
-      return self.clients.openWindow(dialUrl);
+    self.clients.openWindow(`tel:${phoneNumber}`).catch(() => {
+      // If tel: fails, fall back to opening the website with dial param
+      return self.clients.openWindow(`/mobile.html?dial=${phoneNumber}`);
     })
   );
 });

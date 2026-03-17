@@ -256,14 +256,6 @@
       sessionId = localStorage.getItem('dial-relay-session');
     }
 
-    // --- Handle immediate dial request from notification ---
-    const dialParam = params.get('dial');
-    if (dialParam) {
-      // Small delay to ensure the page is loaded enough
-      setTimeout(() => {
-        window.location.href = `tel:${dialParam}`;
-      }, 500);
-    }
 
     // DOM
     const statusRing = document.getElementById('statusRing');
@@ -389,7 +381,11 @@
         swRegistration = await navigator.serviceWorker.register('/sw.js');
         navigator.serviceWorker.addEventListener('message', (event) => {
           if (event.data.type === 'trigger-call') {
-            window.location.href = `tel:${event.data.phoneNumber}`;
+            showDialPopup(event.data.phoneNumber);
+            // Try to auto-dial if possible
+            setTimeout(() => {
+              window.location.href = `tel:${event.data.phoneNumber}`;
+            }, 500);
           }
         });
         if (Notification.permission === 'granted') await subscribeToPush();
@@ -562,6 +558,19 @@
       }
     }
     acquireWakeLock();
+    // --- Handle immediate dial/trigger from background ---
+    if (dialParam) {
+      // Show popup immediately
+      showDialPopup(dialParam);
+      
+      // Attempt 1: Immediate trigger (often blocked)
+      window.location.href = `tel:${dialParam}`;
+      
+      // Attempt 2: Delayed trigger (slightly more reliable on some Android versions)
+      setTimeout(() => {
+        window.location.href = `tel:${dialParam}`;
+      }, 1500);
+    }
   </script>
 </body>
 </html>
