@@ -283,27 +283,29 @@ async function sendPushNotification(sessionId, phoneNumber) {
   }
 }
 
+// Helper: send detailed phone status to desktop
+function sendPhoneStatus(session) {
+  if (!session || !session.desktopSocket) return;
+
+  const hasSocket = !!session.mobileSocket;
+  const hasPush = !!session.pushSubscription;
+  // status: 'connected' (socket live), 'push-only' (socket dead but push works), 'disconnected'
+  let status = 'disconnected';
+  if (hasSocket) status = 'connected';
+  else if (hasPush) status = 'push-only';
+
+  console.log(`Status update for session: ${status} (Socket: ${hasSocket}, Push: ${hasPush})`);
+  session.desktopSocket.emit('phone-status', {
+    connected: hasSocket || hasPush,
+    status,
+    hasPush,
+    hasSocket
+  });
+}
+
 // Socket.IO
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
-
-  // Helper: send detailed phone status to desktop
-  function sendPhoneStatus(session) {
-    const hasSocket = !!session.mobileSocket;
-    const hasPush = !!session.pushSubscription;
-    // status: 'connected' (socket live), 'push-only' (socket dead but push works), 'disconnected'
-    let status = 'disconnected';
-    if (hasSocket) status = 'connected';
-    else if (hasPush) status = 'push-only';
-    
-    console.log(`Status update for ${session.desktopSocket.sessionId}: ${status} (Socket: ${hasSocket}, Push: ${hasPush})`);
-    session.desktopSocket.emit('phone-status', { 
-      connected: hasSocket || hasPush, 
-      status, 
-      hasPush, 
-      hasSocket 
-    });
-  }
 
   socket.on('register-desktop', (sessionId) => {
     if (!sessions.has(sessionId)) {
