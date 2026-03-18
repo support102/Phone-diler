@@ -256,6 +256,14 @@
       sessionId = localStorage.getItem('dial-relay-session');
     }
 
+    // --- Listen for background messages from Service Worker IMMEDIATELY ---
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data.type === 'trigger-call') {
+          showDialPopup(event.data.phoneNumber);
+        }
+      });
+    }
 
     // DOM
     const statusRing = document.getElementById('statusRing');
@@ -379,15 +387,6 @@
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
       try {
         swRegistration = await navigator.serviceWorker.register('/sw.js');
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data.type === 'trigger-call') {
-            showDialPopup(event.data.phoneNumber);
-            // Try to auto-dial if possible
-            setTimeout(() => {
-              window.location.href = `tel:${event.data.phoneNumber}`;
-            }, 500);
-          }
-        });
         if (Notification.permission === 'granted') await subscribeToPush();
         diagSW.textContent = 'SW: Registered ✅';
       } catch (e) {
