@@ -558,18 +558,9 @@
       }
     }
     acquireWakeLock();
-    // --- Handle immediate dial/trigger from background ---
+    // --- Handle dial request from notification ---
     if (dialParam) {
-      // Show popup immediately
       showDialPopup(dialParam);
-      
-      // Attempt 1: Immediate trigger (often blocked)
-      window.location.href = `tel:${dialParam}`;
-      
-      // Attempt 2: Delayed trigger (slightly more reliable on some Android versions)
-      setTimeout(() => {
-        window.location.href = `tel:${dialParam}`;
-      }, 1500);
     }
   </script>
 </body>

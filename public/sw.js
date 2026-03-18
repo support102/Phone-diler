@@ -40,10 +40,17 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'dismiss') return;
 
   // action === 'call' or user tapped the notification body
-  // Try to open the phone dialer directly (works on many Android devices)
+  // Open the website with the dial popup — user taps "Call Now" on the popup
   event.waitUntil(
-    self.clients.openWindow(`tel:${phoneNumber}`).catch(() => {
-      // If tel: fails, fall back to opening the website with dial param
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // If mobile.html is already open, focus it and send message
+      for (const client of clients) {
+        if (client.url.includes('mobile.html')) {
+          client.postMessage({ type: 'trigger-call', phoneNumber });
+          return client.focus();
+        }
+      }
+      // Otherwise open a new window
       return self.clients.openWindow(`/mobile.html?dial=${phoneNumber}`);
     })
   );
